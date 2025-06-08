@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Dashboard</title>
+    <link rel="stylesheet" href="output.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="antialiased">
+
+    <div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-80 flex justify-center items-center z-50">
+        <div class="spinner w-16 h-16 border-4 border-gray-600 rounded-full"></div>
+    </div>
+
+    <div class="container mx-auto p-4 max-w-7xl">
+        <header class="mb-8 relative">
+            <h1 class="text-4xl font-bold mb-4 text-center">Weather Dashboard</h1>
+            <div class="flex flex-col sm:flex-row gap-4 max-w-2xl mx-auto">
+                <div class="relative flex-grow">
+                    <input type="text" id="location-input" placeholder="Enter City, State, or Zip Code" class="w-full rounded-lg py-3 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 pl-10">
+                    <i data-lucide="map-pin" class="absolute left-3 top-1/2 -translate-y-1/2 text-subtle"></i>
+                </div>
+                <button id="search-btn" class="bg-blue-600 hover:bg-blue-700 transition-colors rounded-lg px-6 py-3 font-semibold flex items-center justify-center gap-2 text-white"><i data-lucide="search"></i> Search</button>
+                <button id="geo-btn" class="bg-gray-700 hover:bg-gray-600 transition-colors rounded-lg px-6 py-3 font-semibold flex items-center justify-center gap-2 text-white"><i data-lucide="navigation"></i> Use My Location</button>
+            </div>
+            <button id="settings-btn" class="absolute top-0 right-0 p-2 text-subtle hover:text-white transition-colors"><i data-lucide="settings" class="w-8 h-8"></i></button>
+        </header>
+
+        <main id="weather-content" class="hidden">
+            <div class="flex justify-center items-center gap-4 mb-2">
+                <h2 id="location-name" class="text-3xl font-semibold text-center">--</h2>
+                <button id="save-location-btn" class="p-2 text-subtle hover:text-yellow-400 transition-colors" title="Save Location"></button>
+            </div>
+            <p id="current-time" class="text-subtle text-center mb-4"></p>
+            <div id="saved-locations-container" class="flex flex-wrap justify-center gap-2 mb-8"></div>
+            <div id="alerts-container" class="mb-8"></div>
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- Left Column -->
+                <div class="space-y-8">
+                    <section>
+                        <h3 class="text-2xl font-bold mb-4">Current Conditions</h3>
+                        <div id="current-conditions" class="p-6 rounded-lg weather-card"></div>
+                    </section>
+                    <section>
+                        <h3 class="text-2xl font-bold mb-4">Hourly Forecast</h3>
+                        <div id="hourly-forecast-container" class="hourly-forecast flex overflow-x-auto space-x-4 pb-4"></div>
+                        <div class="weather-card rounded-lg p-4 mt-4"><canvas id="hourly-chart"></canvas></div>
+                    </section>
+                     <section>
+                        <h3 class="text-2xl font-bold mb-4">Astronomical Details</h3>
+                        <div id="astro-container" class="p-6 rounded-lg weather-card"></div>
+                    </section>
+                </div>
+                <!-- Right Column -->
+                <div class="space-y-8">
+                    <section class="relative">
+                        <h3 class="text-2xl font-bold mb-4">Interactive Map</h3>
+                        <div id="map" class="bg-gray-700"></div>
+                        <div id="map-controls" class="absolute top-0 right-0 z-[1000] m-2 flex flex-col gap-2"></div>
+                    </section>
+                    <section>
+                        <h3 class="text-2xl font-bold mb-4">Station Observation (METAR)</h3>
+                        <div id="metar-container" class="p-6 rounded-lg weather-card"></div>
+                    </section>
+                     <section>
+                        <h3 class="text-2xl font-bold mb-4">Air Quality Index (AQI)</h3>
+                        <div id="aqi-container" class="p-6 rounded-lg weather-card"></div>
+                    </section>
+                    <section>
+                        <h3 class="text-2xl font-bold mb-4">Winds Aloft</h3>
+                        <div id="winds-aloft-container" class="p-6 rounded-lg weather-card"></div>
+                    </section>
+                </div>
+            </div>
+             <section class="mt-8">
+                <h3 class="text-2xl font-bold mb-4">7-Day Forecast</h3>
+                <div id="forecast-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"></div>
+            </section>
+        </main>
+
+        <div id="error-container" class="hidden text-center mt-8 p-4 rounded-lg max-w-2xl mx-auto"><h3 class="text-xl font-bold mb-2">Error</h3><p id="error-message"></p></div>
+    </div>
+    
+    <div id="settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50"><div class="modal-content p-6 rounded-lg shadow-xl w-full max-w-md m-4"><div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold">Settings</h2><button id="close-settings-btn" class="p-1 rounded-full hover:bg-gray-500/20"><i data-lucide="x"></i></button></div><div class="space-y-6"><div><h3 class="text-lg font-semibold mb-2">Appearance</h3><div class="flex items-center justify-between p-3 rounded-lg" style="background:var(--bg-color);border:1px solid var(--border-color)"><span>Theme</span><div class="flex gap-2"><button id="theme-light-btn" class="px-3 py-1 rounded">Light</button><button id="theme-dark-btn" class="px-3 py-1 rounded">Dark</button></div></div></div><div><h3 class="text-lg font-semibold mb-2">Units</h3><div class="space-y-2 p-3 rounded-lg" style="background:var(--bg-color);border:1px solid var(--border-color)"><div class="flex items-center justify-between"><span>Temperature</span><div><button id="unit-temp-btn" class="px-3 py-1 rounded w-28"></button></div></div><div class="flex items-center justify-between"><span>Wind Speed</span><div><button id="unit-wind-btn" class="px-3 py-1 rounded w-28"></button></div></div><div class="flex items-center justify-between"><span>Pressure</span><div><button id="unit-pressure-btn" class="px-3 py-1 rounded w-28"></button></div></div><div class="flex items-center justify-between"><span>Distance</span><div><button id="unit-distance-btn" class="px-3 py-1 rounded w-28"></button></div></div></div></div></div></div></div>
+
+    <script src="script.js" defer></script>
+</body>
+</html>
