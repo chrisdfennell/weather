@@ -66,14 +66,19 @@
                     <section id="map-card" class="draggable-card">
                         <div class="flex justify-between items-center mb-4">
                            <h3 class="text-2xl font-bold flex items-center gap-2"><i data-lucide="grip-vertical" class="drag-handle"></i> Interactive Map</h3>
-                            <div class="relative">
-                                <button id="map-layers-btn" class="flex items-center gap-2 p-2 rounded-md hover:bg-gray-700">
-                                    <i data-lucide="layers"></i>
-                                    <span>Layers</span>
-                                </button>
-                                <div id="map-controls" class="absolute hidden top-full right-0 mt-2 z-[1100] rounded-md shadow-lg weather-card p-2 space-y-1">
-                                    <!-- Layer buttons will be generated here by JS -->
+                            <div class="relative flex items-center gap-2">
+                                <div class="relative">
+                                    <button id="map-layers-btn" class="flex items-center gap-2 p-2 rounded-md hover:bg-gray-700">
+                                        <i data-lucide="layers"></i>
+                                        <span>Layers</span>
+                                    </button>
+                                    <div id="map-controls" class="absolute hidden top-full right-0 mt-2 z-[1100] rounded-md shadow-lg weather-card p-2 space-y-1">
+                                        <!-- Layer buttons will be generated here by JS -->
+                                    </div>
                                 </div>
+                                <button id="fullscreen-map-btn" class="p-2 rounded-md hover:bg-gray-700" title="Toggle Fullscreen Map">
+                                    <i data-lucide="maximize"></i>
+                                </button>
                             </div>
                         </div>
                         <div id="map" class="bg-gray-700"></div>
@@ -86,10 +91,6 @@
                         <h3 class="text-2xl font-bold mb-4 flex items-center gap-2"><i data-lucide="grip-vertical" class="drag-handle"></i> Air Quality Index (AQI)</h3>
                         <div id="aqi-container" class="p-6 rounded-lg weather-card"></div>
                     </section>
-                    <section id="winds-aloft-card" class="draggable-card">
-                        <h3 class="text-2xl font-bold mb-4 flex items-center gap-2"><i data-lucide="grip-vertical" class="drag-handle"></i> Winds Aloft</h3>
-                        <div id="winds-aloft-container" class="p-6 rounded-lg weather-card"></div>
-                    </section>
                 </div>
             </div>
              <section id="seven-day-card" class="mt-8">
@@ -101,7 +102,7 @@
         <div id="error-container" class="hidden text-center mt-8 p-4 rounded-lg max-w-2xl mx-auto"><h3 class="text-xl font-bold mb-2">Error</h3><p id="error-message"></p></div>
     </div>
     
-    <div id="settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-[2000]"><div class="modal-content p-6 rounded-lg shadow-xl w-full max-w-md m-4"><div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold">Settings</h2><button id="close-settings-btn" class="p-1 rounded-full hover:bg-gray-500/20"><i data-lucide="x"></i></button></div><div class="space-y-6"><div><h3 class="text-lg font-semibold mb-2">Appearance</h3><div class="flex items-center justify-between p-3 rounded-lg" style="background:var(--bg-color);border:1px solid var(--border-color)"><span>Theme</span><div class="flex gap-2"><button id="theme-light-btn" class="px-3 py-1 rounded">Light</button><button id="theme-dark-btn" class="px-3 py-1 rounded">Dark</button></div></div></div><div><h3 class="text-lg font-semibold mb-2">Units</h3><div class="space-y-2 p-3 rounded-lg" style="background:var(--bg-color);border:1px solid var(--border-color)"><div class="flex items-center justify-between"><span>Temperature</span><div><button id="unit-temp-btn" class="px-3 py-1 rounded w-28"></button></div></div><div class="flex items-center justify-between"><span>Wind Speed</span><div><button id="unit-wind-btn" class="px-3 py-1 rounded w-28"></button></div></div><div class="flex items-center justify-between"><span>Pressure</span><div><button id="unit-pressure-btn" class="px-3 py-1 rounded w-28"></button></div></div><div class="flex items-center justify-between"><span>Distance</span><div><button id="unit-distance-btn" class="px-3 py-1 rounded w-28"></button></div></div></div></div></div></div></div>
+    <div id="settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-[6000]"><div class="modal-content p-6 rounded-lg shadow-xl w-full max-w-md m-4"><div class="flex justify-between items-center mb-6"><h2 class="text-2xl font-bold">Settings</h2><button id="close-settings-btn" class="p-1 rounded-full hover:bg-gray-500/20"><i data-lucide="x"></i></button></div><div class="space-y-6"><div><h3 class="text-lg font-semibold mb-2">Appearance</h3><div class="flex items-center justify-between p-3 rounded-lg" style="background:var(--bg-color);border:1px solid var(--border-color)"><span>Theme</span><div class="flex gap-2"><button id="theme-light-btn" class="px-3 py-1 rounded">Light</button><button id="theme-dark-btn" class="px-3 py-1 rounded">Dark</button></div></div></div><div><h3 class="text-lg font-semibold mb-2">Units</h3><div class="space-y-2 p-3 rounded-lg" style="background:var(--bg-color);border:1px solid var(--border-color)"><div class="flex items-center justify-between"><span>Temperature</span><div><button id="unit-temp-btn" class="px-3 py-1 rounded w-28"></button></div></div><div class="flex items-center justify-between"><span>Wind Speed</span><div><button id="unit-wind-btn" class="px-3 py-1 rounded w-28"></button></div></div><div class="flex items-center justify-between"><span>Pressure</span><div><button id="unit-pressure-btn" class="px-3 py-1 rounded w-28"></button></div></div><div class="flex items-center justify-between"><span>Distance</span><div><button id="unit-distance-btn" class="px-3 py-1 rounded w-28"></button></div></div></div></div></div></div></div>
 
     <script src="script.js"></script>
 </body>

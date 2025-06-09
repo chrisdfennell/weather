@@ -2,20 +2,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const OPENCAGE_API_KEY = 'a75373f1767c4920b1fcba13f2a19d40';
     const OPENWEATHER_API_KEY = '0f69e0dea4ecfa48727efb4c88ac7457';
     
-    const DOMElements = { geoBtn:document.getElementById('geo-btn'),searchBtn:document.getElementById('search-btn'),locationInput:document.getElementById('location-input'),loadingOverlay:document.getElementById('loading-overlay'),weatherContent:document.getElementById('weather-content'),errorContainer:document.getElementById('error-container'),errorMessage:document.getElementById('error-message'),locationNameEl:document.getElementById('location-name'),currentTimeEl:document.getElementById('current-time'),saveLocationBtn:document.getElementById('save-location-btn'),savedLocationsContainer:document.getElementById('saved-locations-container'),currentConditionsContainer:document.getElementById('current-conditions'),forecastContainer:document.getElementById('forecast-container'),hourlyForecastContainer:document.getElementById('hourly-forecast-container'),alertsContainer:document.getElementById('alerts-container'),metarContainer:document.getElementById('metar-container'),astroContainer:document.getElementById('astro-container'),aqiContainer:document.getElementById('aqi-container'),windsAloftContainer:document.getElementById('winds-aloft-container'),hourlyChartEl:document.getElementById('hourly-chart'),mapLayersBtn:document.getElementById('map-layers-btn'),mapControls:document.getElementById('map-controls'),settingsBtn:document.getElementById('settings-btn'),settingsModal:document.getElementById('settings-modal'),closeSettingsBtn:document.getElementById('close-settings-btn'),themeLightBtn:document.getElementById('theme-light-btn'),themeDarkBtn:document.getElementById('theme-dark-btn'),unitTempBtn:document.getElementById('unit-temp-btn'),unitWindBtn:document.getElementById('unit-wind-btn'),unitPressureBtn:document.getElementById('unit-pressure-btn'),unitDistanceBtn:document.getElementById('unit-distance-btn'),leftColumn: document.getElementById('left-column'), rightColumn: document.getElementById('right-column')};
-    let map, hourlyChart, baseMapLayer, mapMarker;
+    const DOMElements = { geoBtn:document.getElementById('geo-btn'),searchBtn:document.getElementById('search-btn'),locationInput:document.getElementById('location-input'),loadingOverlay:document.getElementById('loading-overlay'),weatherContent:document.getElementById('weather-content'),errorContainer:document.getElementById('error-container'),errorMessage:document.getElementById('error-message'),locationNameEl:document.getElementById('location-name'),currentTimeEl:document.getElementById('current-time'),saveLocationBtn:document.getElementById('save-location-btn'),savedLocationsContainer:document.getElementById('saved-locations-container'),currentConditionsContainer:document.getElementById('current-conditions'),forecastContainer:document.getElementById('forecast-container'),hourlyForecastContainer:document.getElementById('hourly-forecast-container'),alertsContainer:document.getElementById('alerts-container'),metarContainer:document.getElementById('metar-container'),astroContainer:document.getElementById('astro-container'),aqiContainer:document.getElementById('aqi-container'),hourlyChartEl:document.getElementById('hourly-chart'),mapLayersBtn:document.getElementById('map-layers-btn'),mapControls:document.getElementById('map-controls'),fullscreenMapBtn:document.getElementById('fullscreen-map-btn'),mapCard:document.getElementById('map-card'),settingsBtn:document.getElementById('settings-btn'),settingsModal:document.getElementById('settings-modal'),closeSettingsBtn:document.getElementById('close-settings-btn'),themeLightBtn:document.getElementById('theme-light-btn'),themeDarkBtn:document.getElementById('theme-dark-btn'),unitTempBtn:document.getElementById('unit-temp-btn'),unitWindBtn:document.getElementById('unit-wind-btn'),unitPressureBtn:document.getElementById('unit-pressure-btn'),unitDistanceBtn:document.getElementById('unit-distance-btn'),leftColumn: document.getElementById('left-column'), rightColumn: document.getElementById('right-column')};
+    let map, hourlyChart, baseMapLayer, mapMarker, clickMarker;
     let mapLayers = {};
     let stationMarkers = [];
     const weatherCache = new Map();
     let currentWeatherData = null;
     let settings = { theme:'dark',tempUnit:'f',windUnit:'mph',pressureUnit:'inHg',distanceUnit:'mi',activeMapLayer:'precipitation',savedLocations:[], cardLayout: { left: [], right: [] } };
+    let originalParent = null;
+    let originalNextSibling = null;
     
     function init() { loadSettings(); displaySavedLocations(); applyCardOrder(); applyTheme(); updateSettingsUI(); initSortable(); lucide.createIcons(); showLoading(); handleInitialLocation(); setupEventListeners(); }
-    function setupEventListeners(){DOMElements.geoBtn.addEventListener('click',handleGeoButtonClick);DOMElements.searchBtn.addEventListener('click',handleSearch);DOMElements.locationInput.addEventListener('keypress',e=>e.key==='Enter'&&handleSearch());DOMElements.settingsBtn.addEventListener('click',()=>DOMElements.settingsModal.classList.remove('hidden'));DOMElements.closeSettingsBtn.addEventListener('click',()=>DOMElements.settingsModal.classList.add('hidden'));DOMElements.settingsModal.addEventListener('click',e=>e.target===DOMElements.settingsModal&&DOMElements.settingsModal.classList.add('hidden'));DOMElements.themeLightBtn.addEventListener('click',()=>updateSetting('theme','light'));DOMElements.themeDarkBtn.addEventListener('click',()=>updateSetting('theme','dark'));DOMElements.unitTempBtn.addEventListener('click',()=>updateSetting('tempUnit',settings.tempUnit==='f'?'c':'f'));DOMElements.unitWindBtn.addEventListener('click',()=>{const u=['mph','kph','knots'];const i=(u.indexOf(settings.windUnit)+1)%u.length;updateSetting('windUnit',u[i]);});DOMElements.unitPressureBtn.addEventListener('click',()=>updateSetting('pressureUnit',settings.pressureUnit==='inHg'?'hPa':'inHg'));DOMElements.unitDistanceBtn.addEventListener('click',()=>updateSetting('distanceUnit',settings.distanceUnit==='mi'?'km':'mi'));DOMElements.saveLocationBtn.addEventListener('click',toggleSaveLocation);DOMElements.mapLayersBtn.addEventListener('click', ()=>DOMElements.mapControls.classList.toggle('hidden'));document.addEventListener('click',(e)=>{if(!DOMElements.mapControls.contains(e.target)&&!DOMElements.mapLayersBtn.contains(e.target))DOMElements.mapControls.classList.add('hidden');});}
+    function setupEventListeners(){DOMElements.geoBtn.addEventListener('click',handleGeoButtonClick);DOMElements.searchBtn.addEventListener('click',handleSearch);DOMElements.locationInput.addEventListener('keypress',e=>e.key==='Enter'&&handleSearch());DOMElements.settingsBtn.addEventListener('click',()=>DOMElements.settingsModal.classList.remove('hidden'));DOMElements.closeSettingsBtn.addEventListener('click',()=>DOMElements.settingsModal.classList.add('hidden'));DOMElements.settingsModal.addEventListener('click',e=>e.target===DOMElements.settingsModal&&DOMElements.settingsModal.classList.add('hidden'));DOMElements.themeLightBtn.addEventListener('click',()=>updateSetting('theme','light'));DOMElements.themeDarkBtn.addEventListener('click',()=>updateSetting('theme','dark'));DOMElements.unitTempBtn.addEventListener('click',()=>updateSetting('tempUnit',settings.tempUnit==='f'?'c':'f'));DOMElements.unitWindBtn.addEventListener('click',()=>{const u=['mph','kph','knots'];const i=(u.indexOf(settings.windUnit)+1)%u.length;updateSetting('windUnit',u[i]);});DOMElements.unitPressureBtn.addEventListener('click',()=>updateSetting('pressureUnit',settings.pressureUnit==='inHg'?'hPa':'inHg'));DOMElements.unitDistanceBtn.addEventListener('click',()=>updateSetting('distanceUnit',settings.distanceUnit==='mi'?'km':'mi'));DOMElements.saveLocationBtn.addEventListener('click',toggleSaveLocation);DOMElements.mapLayersBtn.addEventListener('click', ()=>DOMElements.mapControls.classList.toggle('hidden'));document.addEventListener('click',(e)=>{if(DOMElements.mapControls&&!DOMElements.mapControls.contains(e.target)&&!DOMElements.mapLayersBtn.contains(e.target))DOMElements.mapControls.classList.add('hidden');});DOMElements.fullscreenMapBtn.addEventListener('click', toggleMapFullscreen);document.addEventListener('keydown', (e) => {if (e.key === "Escape" && document.body.classList.contains('fullscreen-active')) {toggleMapFullscreen();}});}
     function loadSettings(){const s=localStorage.getItem('weatherAppSettings');if(s)settings={...settings,...JSON.parse(s)};}
     function saveSettings(){localStorage.setItem('weatherAppSettings',JSON.stringify(settings));}
     function applyTheme(){document.body.classList.toggle('light-mode',settings.theme==='light');if(baseMapLayer)baseMapLayer.setUrl(`https://{s}.basemaps.cartocdn.com/${settings.theme==='light'?'light_all':'dark_all'}/{z}/{x}/{y}{r}.png`);if(hourlyChart){hourlyChart.options.scales.x.ticks.color=getComputedStyle(document.body).getPropertyValue('--text-color');hourlyChart.options.scales.y.ticks.color=getComputedStyle(document.body).getPropertyValue('--text-color');hourlyChart.update();}}
-    function updateSetting(key,value){settings[key]=value;saveSettings();if(key==='theme')applyTheme();updateSettingsUI();if(currentWeatherData)displayAllWeatherData(currentWeatherData.weather,currentWeatherData.hourly,currentWeatherData.gridData,currentWeatherData.alerts,currentWeatherData.observation,currentWeatherData.sun,currentWeatherData.aqi,currentWeatherData.winds,currentWeatherData.stations,currentWeatherData.lat,currentWeatherData.lon,currentWeatherData.locationName);}
+    function updateSetting(key,value){settings[key]=value;saveSettings();if(key==='theme')applyTheme();updateSettingsUI();if(currentWeatherData)displayAllWeatherData(currentWeatherData.weather,currentWeatherData.hourly,currentWeatherData.gridData,currentWeatherData.alerts,currentWeatherData.observation,currentWeatherData.sun,currentWeatherData.aqi,currentWeatherData.stations,currentWeatherData.lat,currentWeatherData.lon,currentWeatherData.locationName);}
     function updateSettingsUI(){DOMElements.themeLightBtn.classList.toggle('bg-blue-600',settings.theme==='light');DOMElements.themeLightBtn.classList.toggle('text-white',settings.theme==='light');DOMElements.themeDarkBtn.classList.toggle('bg-blue-600',settings.theme==='dark');DOMElements.themeDarkBtn.classList.toggle('text-white',settings.theme==='dark');DOMElements.unitTempBtn.textContent=settings.tempUnit==='f'?'Fahrenheit (°F)':'Celsius (°C)';DOMElements.unitWindBtn.textContent=settings.windUnit;DOMElements.unitPressureBtn.textContent=settings.pressureUnit;DOMElements.unitDistanceBtn.textContent=settings.distanceUnit==='mi'?'Miles':'Kilometers';}
     function showLoading(){DOMElements.loadingOverlay.classList.remove('hidden');DOMElements.weatherContent.classList.add('hidden');DOMElements.errorContainer.classList.add('hidden');}
     function hideLoading(){DOMElements.loadingOverlay.classList.add('hidden');}
@@ -38,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
         lat = parseFloat(lat.toFixed(4));
         lon = parseFloat(lon.toFixed(4));
         const cacheKey = `${lat},${lon}`;
-        if(weatherCache.has(cacheKey)){const d=weatherCache.get(cacheKey);currentWeatherData={...d,lat,lon};displayAllWeatherData(d.weather,d.hourly,d.gridData,d.alerts,d.observation,d.sun,d.aqi,d.winds,d.stations,lat,lon,d.locationName);return;}
+        if(weatherCache.has(cacheKey)){const d=weatherCache.get(cacheKey);currentWeatherData={...d,lat,lon};displayAllWeatherData(d.weather,d.hourly,d.gridData,d.alerts,d.observation,d.sun,d.aqi,d.stations,lat,lon,d.locationName);return;}
         showLoading();
         try {
             const pResponse=await fetch(`https://api.weather.gov/points/${lat},${lon}`, { headers: { 'User-Agent': '(myweatherapp.com, contact@myweatherapp.com)' } });if(!pResponse.ok)throw new Error(`Weather data not available for this location.`);
@@ -47,40 +49,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const{forecast:fUrl,forecastHourly:hUrl,forecastGridData:gUrl,observationStations:oUrl}=pData.properties;
             const fName=locationName||`${pData.properties.relativeLocation.properties.city}, ${pData.properties.relativeLocation.properties.state}`;
             
-            let stationIdForMetar=null;
             let stationList = [];
             try {
                 const oResponse = await fetch(oUrl);
                 if (oResponse.ok) {
                     const oStations = await oResponse.json();
-                    if (oStations.features && oStations.features.length > 0) {
-                        stationList = oStations.features;
-                        stationIdForMetar = stationList[0].id;
-                    }
+                    if (oStations.features && oStations.features.length > 0) stationList = oStations.features;
                 }
             } catch (e) { console.warn("Could not fetch observation stations:", e); }
-
-            const fetchWithCors = (url) => fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`);
-            
-            async function fetchWindsAloft(stations) {
-                const candidates = stations.map(f => f.properties.stationIdentifier).filter(id => id && id.length === 4 && id.startsWith('K'));
-                for (const stationId of candidates.slice(0, 20)) {
-                    try {
-                        const res = await fetchWithCors(`https://www.aviationweather.gov/windtemp/data?station=${stationId}`);
-                        if (res.ok) {
-                            const text = await res.text();
-                            if (text && !text.includes("No data") && text.trim().length > 0) return text;
-                        }
-                    } catch (e) { console.warn(`Winds aloft fetch for ${stationId} failed.`, e); }
-                }
-                return null;
-            }
 
             const promises = {
                 weather: fetch(fUrl), hourly: fetch(hUrl), gridData: fetch(gUrl),
                 alerts: fetch(`https://api.weather.gov/alerts/active?point=${lat},${lon}`),
                 sun: fetch(`https://api.sunrise-sunset.org/json?lat=${lat}&lng=${lon}&formatted=0`),
-                observation: stationIdForMetar ? fetch(`${stationIdForMetar}/observations/latest`) : Promise.resolve(null),
+                observation: stationList.length > 0 ? fetch(`${stationList[0].id}/observations/latest`) : Promise.resolve(null),
                 aqi: fetch(`https://api.openweathermap.org/data/2.5/air_pollution?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}`),
             };
 
@@ -94,26 +76,50 @@ document.addEventListener('DOMContentLoaded', () => {
             const sData = sResult.status === 'fulfilled' && sResult.value.ok ? await sResult.value.json() : { results: null };
             const obData = obResult.status === 'fulfilled' && obResult.value?.ok ? await obResult.value.json() : null;
             const aqData = aqResult.status === 'fulfilled' && aqResult.value?.ok ? await aqResult.value.json() : null;
-            const windsData = await fetchWindsAloft(stationList);
 
-            const dataToCache={weather:wData,hourly:hData,gridData:gData,alerts:alData,observation:obData,sun:sData.results,aqi:aqData,winds:windsData,stations:stationList,locationName:fName};
+            const dataToCache={weather:wData,hourly:hData,gridData:gData,alerts:alData,observation:obData,sun:sData.results,aqi:aqData,stations:stationList,locationName:fName};
             weatherCache.set(cacheKey,dataToCache);currentWeatherData={...dataToCache,lat,lon};
-            displayAllWeatherData(wData,hData,gData,alData,obData,sData.results,aqData,windsData,stationList,lat,lon,fName);
+            displayAllWeatherData(wData,hData,gData,alData,obData,sData.results,aqData,stationList,lat,lon,fName);
 
         } catch(e){console.error("Weather Fetch Error:",e);showError(e.message);}
     }
 
-    function displayAllWeatherData(weather,hourly,gridData,alerts,observation,sun,aqi,winds,stations,lat,lon,name){DOMElements.locationNameEl.textContent=name;DOMElements.currentTimeEl.textContent=`Last updated: ${new Date().toLocaleTimeString()}`;updateSaveLocationButton();displayCurrentConditions(weather?.properties?.periods[0],gridData?.properties);displayHourlyForecast(hourly?.properties?.periods);displayHourlyChart(hourly?.properties?.periods);displayForecast(weather?.properties?.periods);displayAlerts(alerts?.features);displayMetar(observation);displayAstro(sun);displayAqi(aqi);displayWindsAloft(winds);initializeOrUpdateMap(lat,lon,stations);showContent();}
+    function displayAllWeatherData(weather,hourly,gridData,alerts,observation,sun,aqi,stations,lat,lon,name){DOMElements.locationNameEl.textContent=name;DOMElements.currentTimeEl.textContent=`Last updated: ${new Date().toLocaleTimeString()}`;updateSaveLocationButton();displayCurrentConditions(weather?.properties?.periods[0],gridData?.properties);displayHourlyForecast(hourly?.properties?.periods);displayHourlyChart(hourly?.properties?.periods);displayForecast(weather?.properties?.periods);displayAlerts(alerts?.features);displayMetar(observation);displayAstro(sun);displayAqi(aqi);initializeOrUpdateMap(lat,lon,stations);showContent();}
     function displayHourlyForecast(periods){if(!periods){DOMElements.hourlyForecastContainer.innerHTML='';return;}const c=DOMElements.hourlyForecastContainer;c.innerHTML='';periods.slice(0,24).forEach(p=>{const card=document.createElement('div');card.className='flex-shrink-0 text-center p-3 rounded-lg weather-card w-28';card.innerHTML=`<p class="font-semibold">${new Date(p.startTime).toLocaleTimeString('en-US',{hour:'numeric'})}</p><i data-lucide="${getIconForWeather(p.shortForecast,p.isDaytime)}" class="w-10 h-10 mx-auto my-2 text-yellow-400"></i><p class="font-bold text-lg">${convertTempF(p.temperature)}</p><p class="text-xs text-subtle">${convertSpeed(parseFloat(p.windSpeed),'mph')}</p>`;c.appendChild(card);});lucide.createIcons();}
     function displayHourlyChart(periods){if(!periods){return}const ctx=DOMElements.hourlyChartEl.getContext('2d');const data=periods.slice(0,24);const labels=data.map(p=>new Date(p.startTime).toLocaleTimeString('en-US',{hour:'2-digit'}));const tempData=data.map(p=>settings.tempUnit==='f'?p.temperature:(p.temperature-32)*5/9);const precipData=data.map(p=>p.probabilityOfPrecipitation.value||0);if(hourlyChart)hourlyChart.destroy();hourlyChart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{type:'line',label:`Temperature (${settings.tempUnit.toUpperCase()})`,data:tempData,borderColor:'#facc15',yAxisID:'yTemp',tension:0.3,},{type:'bar',label:'Precipitation %',data:precipData,backgroundColor:'rgba(59,130,246,0.5)',yAxisID:'yPrecip',barPercentage:0.7,}]},options:{responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:getComputedStyle(document.body).getPropertyValue('--text-color')}},yTemp:{position:'left',ticks:{color:'#facc15',callback:v=>`${v}°`}},yPrecip:{position:'right',max:100,grid:{drawOnChartArea:false},ticks:{color:'rgba(59,130,246,0.8)',callback:v=>`${v}%`}},}}});}
-    function displayCurrentConditions(current,gridProps){if(!current||!gridProps){DOMElements.currentConditionsContainer.innerHTML=`<p>Current conditions not available.</p>`;return;}const icon=getIconForWeather(current.shortForecast,current.isDaytime);const pressure=gridProps.barometricPressure?.values[0]?.value;const dewpointC=gridProps.dewpoint?.values[0]?.value;const visibility=gridProps.visibility?.values[0]?.value;const humidityHtml=current.relativeHumidity?.value!=null?`<div class="flex items-center gap-3 text-subtle"><i data-lucide="droplets" class="w-5 h-5"></i><span>Humidity: ${current.relativeHumidity.value}%</span></div>`:'';DOMElements.currentConditionsContainer.innerHTML=`<div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="flex flex-col items-center justify-center text-center"><i data-lucide="${icon}" class="w-24 h-24 text-yellow-400"></i><p class="text-xl font-medium mt-2">${current.shortForecast}</p></div><div class="space-y-3"><p class="text-6xl font-bold">${convertTempF(current.temperature)}</p><div class="flex items-center gap-3 text-subtle"><i data-lucide="wind" class="w-5 h-5"></i><span>${convertSpeed(parseFloat(current.windSpeed),'mph')} ${current.windDirection}</span></div>${humidityHtml}</div></div><div class="col-span-1 md:col-span-2 mt-4 pt-4 border-t border-dashed" style="border-color:var(--border-color);"><p class="text-subtle mb-4">${current.detailedForecast||''}</p><div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm"><div class="flex items-center gap-2"><i data-lucide="gauge" class="w-5 h-5 text-cyan-400"></i><div><strong>Pressure</strong><br>${convertPressure(pressure)}</div></div><div class="flex items-center gap-2"><i data-lucide="thermometer-snowflake" class="w-5 h-5 text-cyan-400"></i><div><strong>Dew Point</strong><br>${convertTemp(dewpointC)}</div></div><div class="flex items-center gap-2"><i data-lucide="eye" class="w-5 h-5 text-cyan-400"></i><div><strong>Visibility</strong><br>${convertDistance(visibility)}</div></div></div></div>`;lucide.createIcons();}
+    function displayCurrentConditions(current,gridProps){if(!current||!gridProps){DOMElements.currentConditionsContainer.innerHTML=`<p>Current conditions not available.</p>`;return;}const icon=getIconForWeather(current.shortForecast,current.isDaytime);const pressure=gridProps.barometricPressure?.values[0]?.value;const dewpointC=gridProps.dewpoint?.values[0]?.value;const visibility=gridProps.visibility?.values[0]?.value;const humidityHtml=current.relativeHumidity?.value!=null?`<div class="flex items-center gap-3 text-subtle"><i data-lucide="droplets" class="w-5 h-5"></i><span>Humidity: ${current.relativeHumidity.value}%</span></div>`:'';const feelsLikeTempC = gridProps.apparentTemperature?.values[0]?.value;DOMElements.currentConditionsContainer.innerHTML=`<div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="flex flex-col items-center justify-center text-center"><i data-lucide="${icon}" class="w-24 h-24 text-yellow-400"></i><p class="text-xl font-medium mt-2">${current.shortForecast}</p></div><div class="space-y-3"><p class="text-6xl font-bold">${convertTempF(current.temperature)}</p><p class="text-subtle -mt-2">Feels like ${convertTemp(feelsLikeTempC)}</p><div class="flex items-center gap-3 text-subtle"><i data-lucide="wind" class="w-5 h-5"></i><span>${convertSpeed(parseFloat(current.windSpeed),'mph')} ${current.windDirection}</span></div>${humidityHtml}</div></div><div class="col-span-1 md:col-span-2 mt-4 pt-4 border-t border-dashed" style="border-color:var(--border-color);"><p class="text-subtle mb-4">${current.detailedForecast||''}</p><div class="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm"><div class="flex items-center gap-2"><i data-lucide="gauge" class="w-5 h-5 text-cyan-400"></i><div><strong>Pressure</strong><br>${convertPressure(pressure)}</div></div><div class="flex items-center gap-2"><i data-lucide="thermometer-snowflake" class="w-5 h-5 text-cyan-400"></i><div><strong>Dew Point</strong><br>${convertTemp(dewpointC)}</div></div><div class="flex items-center gap-2"><i data-lucide="eye" class="w-5 h-5 text-cyan-400"></i><div><strong>Visibility</strong><br>${convertDistance(visibility)}</div></div></div></div>`;lucide.createIcons();}
     function getMetarFlightCategory(visM,cLayers){if(visM==null||!cLayers)return{category:'N/A',emoji:'❓'};const visMi=visM/1609.34;const ceilLayer=cLayers.find(l=>['BKN','OVC'].includes(l.amount));const ceilFt=ceilLayer?ceilLayer.base.value:null;if(ceilFt<500||visMi<1)return{category:'LIFR',emoji:'🟣'};if((ceilFt&&ceilFt<1000)||visMi<3)return{category:'IFR',emoji:'🔴'};if((ceilFt&&ceilFt<=3000)||visMi<=5)return{category:'MVFR',emoji:'🔵'};return{category:'VFR',emoji:'🟢'};}
     function displayMetar(obs){if(!obs||!obs.properties){DOMElements.metarContainer.innerHTML=`<p class="text-subtle">No METAR observation data available.</p>`;return;}const p=obs.properties;const fc=getMetarFlightCategory(p.visibility.value,p.cloudLayers);const wd=p.windDirection.value===null?'Variable':`${p.windDirection.value}°`;const c=p.cloudLayers.map(l=>`${l.base.value} ft (${l.amount})`).join('<br>')||'Clear';DOMElements.metarContainer.innerHTML=`<div class="space-y-3"><p class="text-lg font-bold flex items-center gap-2">${fc.emoji} ${fc.category}</p><p class="metar-raw">${p.rawMessage}</p><div class="text-sm space-y-2"><p><strong>🕒 Time:</strong> ${new Date(p.timestamp).toLocaleString()}</p><p><strong>💨 Wind:</strong> ${wd} at ${convertSpeed(p.windSpeed.value,'m/s')}</p><p><strong>👁️ Visibility:</strong> ${convertDistance(p.visibility.value)}</p><p><strong>🌡️ Temp/Dew:</strong> ${convertTemp(p.temperature.value)} / ${convertTemp(p.dewpoint.value)}</p><p><strong>⏲️ Pressure:</strong> ${convertPressure(p.barometricPressure.value)}</p><p><strong>☁️ Clouds:</strong><br>${c}</p></div></div>`;}
     function getMoonPhase(date=new Date()){const J2000=2451545.0;const LUNAR_MONTH=29.530588853;const julianDate=date.getTime()/86400000+2440587.5;const daysSinceNew=julianDate-J2000;const newMoons=daysSinceNew/LUNAR_MONTH;const phase=newMoons%1;const phases=['🌑 New','🌒 Waxing Crescent','🌓 First Quarter','🌔 Waxing Gibbous','🌕 Full','🌖 Waning Gibbous','🌗 Last Quarter','🌘 Waning Crescent'];return phases[Math.floor(phase*8)];}
-    function displayAstro(sun){const c=DOMElements.astroContainer;let sunHtml,moonHtml;if(!sun||!sun.sunrise){sunHtml=`<p class="text-subtle text-center">Sunrise/sunset times not available.</p>`;}else{const dayLength=new Date(sun.day_length*1000).toISOString().substr(11,8);sunHtml=`<div class="flex-1"><i data-lucide="sunrise" class="w-12 h-12 text-yellow-400 mx-auto mb-2"></i><p class="font-bold">Sunrise</p><p>${new Date(sun.sunrise).toLocaleTimeString()}</p></div><div class="flex-1"><i data-lucide="sunset" class="w-12 h-12 text-orange-400 mx-auto mb-2"></i><p class="font-bold">Sunset</p><p>${new Date(sun.sunset).toLocaleTimeString()}</p></div><div class="flex-1"><i data-lucide="timer" class="w-12 h-12 text-subtle mx-auto mb-2"></i><p class="font-bold">Day Length</p><p>${dayLength}</p></div>`;}const moonPhase=getMoonPhase();moonHtml=`<div class="flex-1"><p class="text-4xl mx-auto mb-2">${moonPhase.split(' ')[0]}</p><p class="font-bold">Moon Phase</p><p>${moonPhase.split(' ')[1]}</p></div>`;c.innerHTML=`<div class="flex justify-around items-start text-center">${sunHtml}${moonHtml}</div>`;lucide.createIcons();}
+    function displayAstro(sun){
+        const c=DOMElements.astroContainer;
+        if(!sun||!sun.sunrise){c.innerHTML = `<p class="text-subtle text-center">Astronomical data not available.</p>`; return;}
+        
+        const dayLength=new Date(sun.day_length*1000).toISOString().substr(11,8);
+        const moonPhase=getMoonPhase();
+        const moonPhaseEmoji = moonPhase.split(' ')[0];
+        const moonPhaseText = moonPhase.substring(moonPhase.indexOf(' ') + 1);
+
+        let sunHtml = `
+            <div class="flex-1"><i data-lucide="sunrise" class="w-10 h-10 text-yellow-400 mx-auto mb-1"></i><p class="font-bold">Sunrise</p><p>${new Date(sun.sunrise).toLocaleTimeString()}</p></div>
+            <div class="flex-1"><i data-lucide="sunset" class="w-10 h-10 text-orange-400 mx-auto mb-1"></i><p class="font-bold">Sunset</p><p>${new Date(sun.sunset).toLocaleTimeString()}</p></div>
+            <div class="flex-1"><i data-lucide="timer" class="w-10 h-10 text-subtle mx-auto mb-1"></i><p class="font-bold">Day Length</p><p>${dayLength}</p></div>
+            <div class="flex-1"><p class="text-3xl mx-auto mb-1">${moonPhaseEmoji}</p><p class="font-bold">Moon Phase</p><p>${moonPhaseText}</p></div>
+        `;
+        
+        let twilightHtml = `
+            <div class="mt-4 pt-4 border-t border-dashed border-gray-700/50 text-xs text-center grid grid-cols-3 gap-2">
+                <div><p class="font-bold">Civil Twilight</p><p class="text-subtle">${new Date(sun.civil_twilight_begin).toLocaleTimeString()} - ${new Date(sun.civil_twilight_end).toLocaleTimeString()}</p></div>
+                <div><p class="font-bold">Nautical Twilight</p><p class="text-subtle">${new Date(sun.nautical_twilight_begin).toLocaleTimeString()} - ${new Date(sun.nautical_twilight_end).toLocaleTimeString()}</p></div>
+                <div><p class="font-bold">Astronomical Twilight</p><p class="text-subtle">${new Date(sun.astronomical_twilight_begin).toLocaleTimeString()} - ${new Date(sun.astronomical_twilight_end).toLocaleTimeString()}</p></div>
+            </div>
+        `;
+
+        c.innerHTML=`<div class="flex justify-around items-start text-center">${sunHtml}</div>${twilightHtml}`;
+        lucide.createIcons();
+    }
     function getAqiInfo(i){switch(i){case 1:return{text:'Good',color:'text-green-400'};case 2:return{text:'Fair',color:'text-yellow-400'};case 3:return{text:'Moderate',color:'text-orange-400'};case 4:return{text:'Poor',color:'text-red-500'};case 5:return{text:'Very Poor',color:'text-purple-500'};default:return{text:'Unknown',color:'text-gray-400'};}}
     function displayAqi(aqi){if(!aqi||!aqi.list||!aqi.list[0]){DOMElements.aqiContainer.innerHTML=`<p class="text-subtle">AQI data not available.</p>`;return;}const{main,components}=aqi.list[0];const info=getAqiInfo(main.aqi);DOMElements.aqiContainer.innerHTML=`<div class="text-center mb-4"><p class="text-6xl font-bold ${info.color}">${main.aqi}</p><p class="text-xl font-semibold ${info.color}">${info.text}</p></div><div class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm"><span><strong>CO:</strong> ${components.co.toFixed(2)} μg/m³</span><span><strong>NO₂:</strong> ${components.no2.toFixed(2)} μg/m³</span><span><strong>O₃:</strong> ${components.o3.toFixed(2)} μg/m³</span><span><strong>SO₂:</strong> ${components.so2.toFixed(2)} μg/m³</span><span><strong>PM2.5:</strong> ${components.pm2_5.toFixed(2)} μg/m³</span><span><strong>PM10:</strong> ${components.pm10.toFixed(2)} μg/m³</span></div>`;}
-    function displayWindsAloft(windsText){if(!windsText){DOMElements.windsAloftContainer.innerHTML=`<p class="text-subtle">Winds Aloft data not available for this station.</p>`;return;}const lines=windsText.split('\n').filter(l=>/^\d{4}/.test(l.trim()));if(lines.length===0){DOMElements.windsAloftContainer.innerHTML=`<p class="text-subtle">No valid winds aloft data in the report.</p>`;return;}let tableHtml='<table class="w-full text-sm text-left"><thead><tr><th class="p-1">Altitude</th><th class="p-1">Direction/Speed</th><th class="p-1">Temp</th></tr></thead><tbody>';lines.forEach(line=>{const parts=line.trim().split(/\s+/);if(parts.length>=2){const altitude=parts[0];const windDir=parts[1].slice(0,2)+'0';const windSpd=parts[1].slice(2,4);let temp=parseInt(parts[1].slice(4),10);if(temp>50)temp=-(temp-50);tableHtml+=`<tr><td class="p-1">${parseInt(altitude,10)} ft</td><td class="p-1">${windDir}° @ ${convertSpeed(windSpd,'knots')}</td><td class="p-1">${convertTemp(temp)}</td></tr>`;}});tableHtml+='</tbody></table>';DOMElements.windsAloftContainer.innerHTML=tableHtml;}
     function displayForecast(periods) {
         if(!periods){DOMElements.forecastContainer.innerHTML='';return;}
         DOMElements.forecastContainer.innerHTML = '';
@@ -202,9 +208,50 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function toggleMapFullscreen() {
+        const mapCard = DOMElements.mapCard;
+        const isFullscreen = document.body.classList.toggle('fullscreen-active');
+        
+        if (isFullscreen) {
+            originalParent = mapCard.parentNode;
+            originalNextSibling = mapCard.nextSibling;
+            document.body.appendChild(mapCard);
+            mapCard.classList.add('map-fullscreen-container');
+        } else {
+            if (originalParent) {
+                originalParent.insertBefore(mapCard, originalNextSibling);
+            }
+            mapCard.classList.remove('map-fullscreen-container');
+        }
+        
+        const icon = isFullscreen ? 'minimize' : 'maximize';
+        DOMElements.fullscreenMapBtn.innerHTML = `<i data-lucide="${icon}"></i>`;
+        lucide.createIcons();
+        
+        setTimeout(() => { if (map) map.invalidateSize(); }, 150);
+    }
+
     async function initializeOrUpdateMap(lat,lon, stations=[]){
         const mapTheme=settings.theme==='light'?'light_all':'dark_all';
-        if(!map){map=L.map('map').setView([lat,lon],7);baseMapLayer=L.tileLayer(`https://{s}.basemaps.cartocdn.com/${mapTheme}/{z}/{x}/{y}{r}.png`,{attribution:'&copy; CARTO &copy; OpenStreetMap',subdomains:'abcd',maxZoom:20}).addTo(map);setupMapLayers(lat,lon);}else{map.setView([lat,lon],7);}
+        if(!map){
+            map=L.map('map').setView([lat,lon],7);
+            baseMapLayer=L.tileLayer(`https://{s}.basemaps.cartocdn.com/${mapTheme}/{z}/{x}/{y}{r}.png`,{attribution:'&copy; CARTO &copy; OpenStreetMap',subdomains:'abcd',maxZoom:20}).addTo(map);
+            setupMapLayers(lat,lon);
+            map.on('click', async (e) => {
+                const { lat, lng } = e.latlng;
+                if(clickMarker) map.removeLayer(clickMarker);
+                clickMarker = L.circleMarker([lat, lng], { radius: 6, color: '#3b82f6', fillOpacity: 1 }).addTo(map);
+                
+                try {
+                    const r = await fetch(`https://api.opencagedata.com/geocode/v1/json?q=${lat}+${lng}&key=${OPENCAGE_API_KEY}&limit=1`);
+                    const d = await r.json();
+                    const locName = (r.ok && d.results.length > 0) ? d.results[0].formatted : 'Selected Location';
+                    getWeatherForCoords(lat, lng, locName);
+                } catch {
+                     getWeatherForCoords(lat, lng, 'Selected Location');
+                }
+            });
+        }else{map.setView([lat,lon],7);}
         if(mapMarker){mapMarker.setLatLng([lat,lon]);}else{mapMarker=L.marker([lat,lon],{icon:L.divIcon({html:`<i data-lucide="map-pin" class="text-blue-500" style="font-size:32px;"></i>`,className:'',iconSize:[32,32],iconAnchor:[16,32]})}).addTo(map);}
         stationMarkers.forEach(m => map.removeLayer(m)); stationMarkers = [];
         if(stations) {

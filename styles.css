@@ -58,11 +58,11 @@ body {
 }
 
 #settings-modal {
-    z-index: 2000;
+    z-index: 6000;
 }
 
 #map-controls {
-    z-index: 1100; /* Ensures this dropdown appears over the map panes */
+    z-index: 1100;
 }
 
 .spinner { 
@@ -107,4 +107,25 @@ body {
 .sortable-ghost {
     opacity: 0.4;
     background: #4f46e5;
+}
+
+/* Fullscreen Map Styles */
+body.fullscreen-active > *:not(.map-fullscreen-container) {
+    display: none !important;
+}
+
+#map-card.map-fullscreen-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 5000;
+    margin: 0 !important;
+    padding: 1rem;
+    border-radius: 0;
+}
+
+#map-card.map-fullscreen-container #map {
+    height: calc(100% - 4rem); /* Adjust height to account for header */
 }
